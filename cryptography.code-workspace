@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../hawk-source/hawk-py"
+		}
+	],
+	"settings": {}
+}
