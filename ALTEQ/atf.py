@@ -1,7 +1,6 @@
-
-from field import reduction_strict, multiplication_mod_p, reduction_mod_p, set_inversion_mod_p
-from params import LEN, N, C, PRIME
-import numpy as np
+from params import LEN, N, C, PRIME, ROUND
+from field import (set_inversion_mod_p, reduction_strict, 
+    multiplication_mod_p, reduction_mod_p)
 
 def compress_atf(atf_in, vec_size: int, nb_atf: int):
     catf_out = [0]*(LEN*vec_size)
@@ -175,3 +174,12 @@ def inverting_on_atf(atf_in, columns):
         atf = acting_on_atf(atf, column, j, C)
 
     return compress_atf(atf, C, C)
+
+def acting_on_atfs(atf_in, columns):
+    atf = decompress_atf(atf_in, ROUND)
+
+    for j in range(N):
+        column = columns[j*N*ROUND:(j+1)*N*ROUND]
+        atf = acting_on_atf(atf, column, j, ROUND)
+    
+    return compress_atf(atf, ROUND, ROUND)
