@@ -1,9 +1,10 @@
-from alteq import alteq_keygen, alteq_sign
+from alteq import alteq_keygen, alteq_sign, alteq_verify
 
 pk,sk = alteq_keygen()
 message = "hello"
 byte_list = message.encode('utf-8') 
-alteq_sign(byte_list, sk)
+signature = alteq_sign(byte_list, sk)
+print(alteq_verify(byte_list, pk, signature))
 
 # print(pk)
 # print(sk)

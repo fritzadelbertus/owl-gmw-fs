@@ -52,8 +52,6 @@ def columns_matrix(colsA, colsB):
     return mat
 
 def columns_decomposition(columns, nb_mats):
-    vec_res = [1]*nb_mats
-
     mat0 = columns.copy()
 
     for i in range(N):
@@ -63,7 +61,7 @@ def columns_decomposition(columns, nb_mats):
 
     for r in range(K):
         if (cols[r]==0 or cols[r]==PRIME):
-            return 0
+            return 0, []
     
     for j in range(1,N):
         cols = column_inv(cols, j-1)
@@ -76,8 +74,8 @@ def columns_decomposition(columns, nb_mats):
 
         for r in range(K):
             if (cols[j*K+r]==0 or cols[j*K+r]==PRIME):
-                return 0
+                return 0, []
 
-    return 1
+    return 1, columns
 
 

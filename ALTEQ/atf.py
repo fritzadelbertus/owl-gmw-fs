@@ -6,7 +6,7 @@ def compress_atf(atf_in, vec_size: int, nb_atf: int):
     catf_out = [0]*(LEN*vec_size)
 
     index = 0
-
+    
     for r in range(nb_atf):
         for i in range(N-2):
             for j in range(i+1, N-1):
@@ -183,3 +183,15 @@ def acting_on_atfs(atf_in, columns):
         atf = acting_on_atf(atf, column, j, ROUND)
     
     return compress_atf(atf, ROUND, ROUND)
+
+# def acting_on_atfs(atf_in, columns):
+#     atf = decompress_atf(atf_in, ROUND)
+#     for j in range(N):
+#         # build the true column j: for each row i, take (i*N + j)*ROUND .. +ROUND
+#         column = [0] * (N * ROUND)
+#         for row in range(N):
+#             src_off = (row * N + j) * ROUND
+#             dst_off = row * ROUND
+#             column[dst_off:dst_off + ROUND] = columns[src_off:src_off + ROUND]
+#         atf = acting_on_atf(atf, column, j, ROUND)
+#     return compress_atf(atf, ROUND, ROUND)
