@@ -12,6 +12,7 @@ from matrix import columns_matrix, columns_decomposition
 
 import hashlib
 
+import copy
 
 def alteq_keygen():
 
@@ -28,7 +29,9 @@ def alteq_keygen():
             vectorized_columns[i*C + r] = columns[r*N*N+i]
 
     atfs = expand_atfs(seeds[C*MAT_SK_SEED_SIZE:], C, C)
+
     atfs = inverting_on_atf(atfs, vectorized_columns)
+
     
     public_key = (atfs,seeds[C*MAT_SK_SEED_SIZE:])
     return (public_key, secret_key)
@@ -66,7 +69,7 @@ def alteq_sign(message:list[bytes], secret_key: bytes):
 
         atfs = expand_atfs(seeds_sk[C*MAT_SK_SEED_SIZE:], ROUND, ROUND)
 
-        atfs = acting_on_atfs(atfs, vectorized_round_columns)
+        atfs = acting_on_atfs(atfs, vectorized_round_columns, ROUND)
 
         atf_bytes = [i.to_bytes(4, byteorder='big') for i in atfs]
 
@@ -76,13 +79,14 @@ def alteq_sign(message:list[bytes], secret_key: bytes):
         
         chg_c, chg_nc, chg_val = expand_challenge(signed_message, CHLG_SIZE)
 
-        temp_columns = [0] * (N*N*K)
+        selected_columns = [0]*(N*N*K)
+
         for r in range(K):
-            temp_columns[r*(N*N):(r+1)*N*N] = round_columns[chg_nc[r]*N*N:(chg_nc[r]+1)*N*N]
-        for i in range(N*N):
-            for r in range(K):
-                round_columns[i*K+r] = temp_columns[r*(N*N)+i]
-        round_columns = round_columns[:N*N*K]
+            for i in range(N*N):
+                selected_columns[i*K+r] = round_columns[chg_nc[r]*N*N + i]
+
+        round_columns = selected_columns
+                
 
         if C >= K:
             temp_columns = [x for r in chg_val for x in expand_columns(seeds_sk[r*MAT_SK_SEED_SIZE:(r+1)*MAT_SK_SEED_SIZE])]
@@ -99,123 +103,63 @@ def alteq_sign(message:list[bytes], secret_key: bytes):
         for i in range(N*N):
             for r in range(K):
                 challenge_columns[i*K+r] = temp_columns[r*(N*N)+i]
-        # print(challenge_columns)
-        # print(round_columns)
+
         final_matrices = columns_matrix(round_columns, challenge_columns)
 
         success, final_matrices = columns_decomposition(final_matrices, K)
-
+    
     c_seeds = [0] * (ROUND-K)
     for r in range(ROUND-K):
         c_seeds[r] = seeds[chg_c[r]]
 
-    return (signed_message, c_seeds, final_matrices, atfs)
+    return (signed_message, c_seeds, final_matrices)
 
 def alteq_verify(message, public_key, signature):
-    signed_message, c_seeds, final_matrices, real_atfs = signature
+    signed_message, c_seeds, final_matrices = signature
 
     chg_c, chg_nc, chg_val = expand_challenge(signed_message, CHLG_SIZE)
-    print(chg_nc)
-    print(chg_val)
+
     columns = [0] * (N*N*ROUND)
     c_columns = [x for r in c_seeds for x in expand_columns(r)]
 
-    # for i in range(N*N):
-    #     for r in range(ROUND-K):
-    #         columns[i*ROUND + chg_c[r]] = c_columns[r*N*N+i]
-    
-    # for i in range(N*N):
-    #     for r in range(K):
-    #         columns[i*ROUND + chg_nc[r]] = final_matrices[i*K+r]
-    
-    # # Forgeries Checking
-    # for i in range(N*N):
-    #     for r in range(ROUND-K, ROUND):
-    #         if columns[i*ROUND+r] >= PRIME:
-    #             return 1
-    # for i in range(N):
-    #     for r in range(ROUND-K, ROUND):
-    #         if columns[i*(N+1)*ROUND+r] == 0:
-    #             return 1
-    # print("hello")
-    # public_atfs, pk_seed = public_key
-    
-    # atfs = expand_atfs(pk_seed, ROUND, ROUND)
-    # # print(public_atfs)
-    # for i in range(LEN):
-    #     for r in range(K):
-    #         atfs[i*ROUND+chg_nc[r]] = public_atfs[i*C+chg_val[r]]
-    
-    # atfs = acting_on_atfs(atfs, columns)
-    # count = 0
-    # rcount = 0
-    # list_reals = []
-    # list_weirds = []
-    # for i in range(len(atfs)):
-    #     if real_atfs[i] != atfs[i]:
-    #         count += 1
-    #         list_reals.append(real_atfs[i])
-    #         list_weirds.append(atfs[i])
-    #         if i%ROUND in chg_nc:
-    #             rcount += 1
-    # print(count)
-
-    # hash_message = hashlib.shake_256(message).digest(MSG_HASH_SIZE)
-
-    
-    # atf_bytes = [i.to_bytes(4, byteorder='big') for i in atfs]
-
-    # hash_input = hash_message+b''.join(atf_bytes)
-
-#==================================================
-
     for i in range(N*N):
         for r in range(ROUND-K):
-            columns[i*ROUND + r] = c_columns[r*N*N+i]
+            columns[i*ROUND + chg_c[r]] = c_columns[r*N*N+i]
     
     for i in range(N*N):
         for r in range(K):
-            columns[i*ROUND + ROUND-K + r] = final_matrices[i*K+r]
+            columns[i*ROUND + chg_nc[r]] = final_matrices[i*K+r]
     
     # Forgeries Checking
     for i in range(N*N):
-        for r in range(ROUND-K, ROUND):
-            if columns[i*ROUND+r] >= PRIME:
+        for r in range(K):
+            if columns[i*ROUND + chg_nc[r]]  >= PRIME:
                 return 1
-    for i in range(N):
-        for r in range(ROUND-K, ROUND):
-            if columns[i*(N+1)*ROUND+r] == 0:
-                return 1
-    print("hello")
-    public_atfs, pk_seed = public_key
 
-    atfs = expand_atfs(pk_seed, ROUND-K, ROUND)
+    for i in range(N):
+        for r in range(K):
+            if columns[i*(N+1)*ROUND+chg_nc[r]] == 0:
+                return 1
+
+    public_atfs, pk_seed = public_key
+    
+    atfs = expand_atfs(pk_seed, ROUND, ROUND)
+
     for i in range(LEN):
         for r in range(K):
-            atfs[i*ROUND+ROUND-K+r] = public_atfs[LEN*chg_val[r]+i]
+            atfs[i*ROUND+chg_nc[r]] = public_atfs[i*C+chg_val[r]]
     
-    atfs = acting_on_atfs(atfs, columns)
+    atfs = acting_on_atfs(atfs, columns, ROUND)
 
-    final_atfs = [0] * (LEN*ROUND)
 
-    for r in range(ROUND-K):
-        final_atfs[chg_c[r]*LEN:(chg_c[r]+1)*LEN] = atfs[r*LEN:(r+1)*LEN]
-    for r in range(ROUND-K, ROUND):
-        final_atfs[(chg_nc[r - ROUND + K])*LEN:(chg_nc[r - ROUND + K]+1)*LEN] = atfs[r*LEN:(r+1)*LEN]
-
-    count = 0
-    for i in range(len(atfs)):
-        if real_atfs[i] != atfs[i]:
-            count += 1
-    print(count)
     hash_message = hashlib.shake_256(message).digest(MSG_HASH_SIZE)
 
-    atf_bytes = [i.to_bytes(4, byteorder='big') for i in final_atfs]
+    atf_bytes = [i.to_bytes(4, byteorder='big') for i in atfs]
 
     hash_input = hash_message+b''.join(atf_bytes)
+
     chk = hashlib.shake_256(hash_input).digest(CHLG_SIZE)
-    print(chk)
-    print(signed_message)
+
     return 0 if chk == signed_message else 1
         
 

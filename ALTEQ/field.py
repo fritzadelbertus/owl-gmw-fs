@@ -1,4 +1,4 @@
-from params import PRIME, LOG_Q
+from params import PRIME, LOG_Q, N, C
 
 def multiplication_mod_p(a: int, b: int) -> int:
     r = a * b
@@ -19,20 +19,42 @@ def reduction_strict(x: int) -> int:
 def inversion_modulo_p(a: int) -> int:
     return pow(a, PRIME - 2, PRIME)
 
-def set_inversion_mod_p(set_list: list[int]) -> list[int]:
-    n = len(set_list)
+def set_inversion_mod_p(set_list):
+    mul = [0] * (N * C)
+    inv0 = [0] * C
 
-    mul = [0] * n
-    mul[0] = set_list[0]
-    for i in range(1, n):
-        mul[i] = reduction_mod_p(multiplication_mod_p(mul[i-1], set_list[i]))
+    for r in range(C):
+        mul[r] = set_list[r]
 
-    inv0 = inversion_modulo_p(mul[n-1])
+    for i in range(1, N):
+        for r in range(C):
+            mul[i*C+r] = reduction_mod_p(
+                multiplication_mod_p(
+                    mul[(i-1)*C+r],
+                    set_list[i*C+r]
+                )
+            )
 
-    for i in reversed(range(1, n)):
-        set_list[i] = reduction_mod_p(multiplication_mod_p(mul[i-1], inv0))
-        inv0 = reduction_mod_p(multiplication_mod_p(inv0, set_list[i]))
+    for r in range(C):
+        inv0[r] = inversion_modulo_p(mul[(N-1)*C+r])
 
-    set_list[0] = inv0
+    for i in range(N-1, 0, -1):
+        for r in range(C):
+            tmp = reduction_mod_p(
+                multiplication_mod_p(
+                    mul[(i-1)*C+r],
+                    inv0[r]
+                )
+            )
+            inv0[r] = reduction_mod_p(
+                multiplication_mod_p(
+                    inv0[r],
+                    set_list[i*C+r]
+                )
+            )
+            set_list[i*C+r] = tmp
+
+    for r in range(C):
+        set_list[r] = inv0[r]
 
     return set_list

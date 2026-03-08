@@ -4,13 +4,12 @@ from field import (set_inversion_mod_p, reduction_strict,
 
 def compress_atf(atf_in, vec_size: int, nb_atf: int):
     catf_out = [0]*(LEN*vec_size)
-
     index = 0
     
-    for r in range(nb_atf):
-        for i in range(N-2):
-            for j in range(i+1, N-1):
-                for k in range(j+1, N):
+    for i in range(N-2):
+        for j in range(i+1, N-1):
+            for k in range(j+1, N):
+                for r in range(nb_atf):
                     catf_out[index] = reduction_strict(atf_in[(i*N*N + j*N + k)*vec_size + r])
                     index += 1
     return catf_out
@@ -175,23 +174,11 @@ def inverting_on_atf(atf_in, columns):
 
     return compress_atf(atf, C, C)
 
-def acting_on_atfs(atf_in, columns):
-    atf = decompress_atf(atf_in, ROUND)
+def acting_on_atfs(atf_in, columns, vec_size):
+    atf = decompress_atf(atf_in, vec_size)
 
     for j in range(N):
-        column = columns[j*N*ROUND:(j+1)*N*ROUND]
-        atf = acting_on_atf(atf, column, j, ROUND)
+        column = columns[j*N*vec_size:(j+1)*N*vec_size]
+        atf = acting_on_atf(atf, column, j, vec_size)
     
-    return compress_atf(atf, ROUND, ROUND)
-
-# def acting_on_atfs(atf_in, columns):
-#     atf = decompress_atf(atf_in, ROUND)
-#     for j in range(N):
-#         # build the true column j: for each row i, take (i*N + j)*ROUND .. +ROUND
-#         column = [0] * (N * ROUND)
-#         for row in range(N):
-#             src_off = (row * N + j) * ROUND
-#             dst_off = row * ROUND
-#             column[dst_off:dst_off + ROUND] = columns[src_off:src_off + ROUND]
-#         atf = acting_on_atf(atf, column, j, ROUND)
-#     return compress_atf(atf, ROUND, ROUND)
+    return compress_atf(atf, vec_size, vec_size)
