@@ -1,6 +1,6 @@
 # Test
 
-from owl import owl_Gen, owl_Sign, owl_Vrfy
+from owl2 import owl_Gen, owl_Sign, owl_Vrfy
 
 def stringToBits(s):
     byte_data = s.encode('utf-8')
@@ -15,7 +15,7 @@ pub,pri = owl_Gen()
 
 print(len(pub))
 print(len(pri))
-sign = owl_Sign(pri, pub, messageInBits)
+sign, t_i = owl_Sign(pri, pub, messageInBits)
 # with open("public_key.txt", "w") as f:
 #     f.write(pub)
 # with open("private_key.txt", "w") as f:
@@ -27,6 +27,6 @@ if sign[-1] == "0":
     fakesign = sign[:-1]+"1"
 else:
     fakesign = sign[:-1]+"0"
-owl_Vrfy(pub, messageInBits, sign)
-owl_Vrfy(pub, messageInBits, fakesign)
+owl_Vrfy(pub, messageInBits, sign, t_i)
+owl_Vrfy(pub, messageInBits, fakesign, t_i)
 
