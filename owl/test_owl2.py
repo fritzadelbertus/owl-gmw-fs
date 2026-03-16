@@ -1,6 +1,6 @@
 # Test
 
-from owl2 import owl_Gen, owl_Sign, owl_Vrfy
+from owl_one import owl_Gen, owl_Sign, owl_Vrfy
 
 def stringToBits(s):
     byte_data = s.encode('utf-8')
@@ -13,9 +13,25 @@ messageInBits = stringToBits(message)
 
 pub,pri = owl_Gen()
 
-print(len(pub))
-print(len(pri))
-sign, t_i = owl_Sign(pri, pub, messageInBits)
+pk_bits = len(pub)
+sk_bits = len(pri)
+
+pk_bytes = pk_bits // 8
+sk_bytes = sk_bits // 8
+
+print("Public key size:")
+print(f"{pk_bits} bits ({pk_bytes} bytes)")
+
+print("Private key size:")
+print(f"{sk_bits} bits ({sk_bytes} bytes)")
+# sign= owl_Sign(pri, pub, messageInBits)
+
+sign,t= owl_Sign(pri, pub, messageInBits)
+sig_bits = len(sign)
+sig_bytes = sig_bits // 8
+
+print("Signature size:")
+print(f"{sig_bits} bits ({sig_bytes} bytes)")
 # with open("public_key.txt", "w") as f:
 #     f.write(pub)
 # with open("private_key.txt", "w") as f:
@@ -27,6 +43,9 @@ if sign[-1] == "0":
     fakesign = sign[:-1]+"1"
 else:
     fakesign = sign[:-1]+"0"
-owl_Vrfy(pub, messageInBits, sign, t_i)
-owl_Vrfy(pub, messageInBits, fakesign, t_i)
+print(owl_Vrfy(pub, messageInBits, sign,t))
+print(owl_Vrfy(pub, messageInBits, fakesign,t))
+
+# print(owl_Vrfy(pub, messageInBits, sign))
+# print(owl_Vrfy(pub, messageInBits, fakesign))
 

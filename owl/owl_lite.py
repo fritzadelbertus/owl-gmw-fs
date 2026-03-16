@@ -269,10 +269,10 @@ def set_sampler(logn=8, rng=None):
     if any(abs(q11i) >= 2 ** (PARAMS(logn, "high11")) for q11i in q11[1:]):
         # Line 22: restart
         return set_sampler(logn, rng)
-    q00 = [i%p for i in f]
-    q01 = [i%p for i in F]
-    q10 = [i%p for i in g]
-    q11 = [i%p for i in G]
+    q00 = [i%p for i in q00]
+    q01 = [i%p for i in q01]
+    q10 = [i%p for i in q10]
+    q11 = [i%p for i in q11]
     return [[q00,q01],[q10,q11]]
 
 # # 4. group_identity             
@@ -385,39 +385,9 @@ def bitsToGroup(bitstring):
 # OWL - GMWFS Construction
 LAMBDA = 128
 CHLG_SIZE = LAMBDA//4
-C = 7
+C = 1
 K = 22
-ROUND = 84
-from random_rng import shake_rng, get_random_value, deterministic_sample
-
-def expand_challenge(seed, seed_size):
-    if seed_size < 32:
-        raise Exception("expand_challenge Error: seed size to low")
-    
-    rng_gen = shake_rng(seed)
-    
-    chg = [0] * ROUND
-    if ROUND - K < K:
-        # pick ROUND-K coefficients to be C
-        for r in deterministic_sample(rng_gen, ROUND, ROUND-K):
-            chg[r] = C
-        # fill remaining coefficients with values < C
-        for i in range(ROUND):
-            if chg[i] == 0:
-                chg[i] = get_random_value(rng_gen, C)
-    else:
-        # initialize all coefficients to C
-        chg = [C] * ROUND
-        # pick K coefficients to be < C
-        for r in deterministic_sample(rng_gen, ROUND, K):
-            chg[r] = get_random_value(rng_gen, C)
-
-    # separate outputs
-    chg_c = [i for i, v in enumerate(chg) if v == C]
-    chg_nc = [i for i, v in enumerate(chg) if v < C]
-    chg_val = [v for v in chg if v < C]
-
-    return chg_c, chg_nc, chg_val
+ROUND = 1
 
 def owl_Gen():
     # C                 : integer                                       Number of Set Elements in the private and public key
@@ -428,20 +398,17 @@ def owl_Gen():
     # setToBits         : (set element) => bitstring                    A function to convert a set element to bitstring
     # groupToBits       : (group element) => bitstring                  A function to convert a group element to bitstring
 
-    print("Generating Key...")
-    private_key = []
+    #print("Generating Key...")
+    B_i = group_sampler()
     public_key = []
     Q_C = set_sampler()
-    for i in range(C):
-        B_i = group_sampler()
-        public_key.append
-        public_key.append(action(B_i, Q_C))
-        private_key.append(group_inverse(B_i))
+    
+    public_key.append(action(B_i, Q_C))
     public_key.append(Q_C)
     
-    privateKeyInBits = ''.join([groupToBits(g) for g in private_key])
+    privateKeyInBits = groupToBits(group_inverse(B_i))
     publicKeyInBits = ''.join([setToBits(s) for s in public_key])
-    print("Key Generated!")
+    #print("Key Generated!")
     return publicKeyInBits, privateKeyInBits
 
 def owl_Sign(privateKeyInBits, publicKeyInBits, messageInBits):
@@ -462,48 +429,36 @@ def owl_Sign(privateKeyInBits, publicKeyInBits, messageInBits):
     # groupElemenentLengthInBits    : integer                                           The length of a group element in bitstring
     # setElementLengthInBits        : integer                                           The length of a set element in bitstring
 
-    print("Signing Message...")
+    #print("Signing Message...")
     
     # =========================== Bit Operations ==================================
 
     # Split the private key and public key to set elements and group elements (still in bits)
     publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
-    privateKeySetElementsInBits = [privateKeyInBits[i:i+groupElementLengthInBits] for i in range(0, len(privateKeyInBits), groupElementLengthInBits)]
 
     # Convert to actual group and set element
     public_key = [bitsToSet(element) for element in publicKeySetElementsInBits]
-    private_key = [bitsToGroup(element) for element in privateKeySetElementsInBits]
+    private_key = bitsToGroup(privateKeyInBits)
 
     # =========================== Non Bit Operations ========================================
-    h_i = [group_sampler() for i in range(ROUND)]
-    t_i = [action(h_i[i], public_key[C]) for i in range(ROUND)]
+    h_i = group_sampler()
+    t_i = action(h_i, public_key[1])
 
     # =========================== Bit Operations ============================================
-    hash_input = messageInBits
-    for ts in t_i:
-        hash_input += setToBits(ts)
+    hash_input = messageInBits + setToBits(t_i)
     
     cha = hashlib.shake_256(bitsToBytes(hash_input)).digest(CHLG_SIZE)
     signed_message = ''.join(f'{byte:08b}' for byte in cha)
-    chg_c, chg_nc, chg_val = expand_challenge(cha, CHLG_SIZE)
 
-    f_i = [0]*ROUND
-
-    for r in range(K):
-        f_i[chg_nc[r]] = group_operator(h_i[chg_nc[r]],private_key[chg_val[r]])
-
-    for r in range(ROUND-K):
-        f_i[chg_c[r]] = h_i[chg_c[r]]
+    f_i = group_operator(h_i, private_key)
 
     # ========================== Bit operations ===========================================
-    sign = signed_message
-    for f in f_i:
-        sign += groupToBits(f)
+    sign = signed_message + groupToBits(f_i)
 
-    print("Message Signed!")
-    return sign, t_i
+    #print("Message Signed!")
+    return sign
 
-def owl_Vrfy(publicKeyInBits, messageInBits, sign, t_ii):
+def owl_Vrfy(publicKeyInBits, messageInBits, sign):
     # publicKeyInBits           : bitstring                                     public key in bits
     # messageInBits             : bitstring                                     message in bits
     # sign                      : bitstring                                     The signature in bits
@@ -517,7 +472,7 @@ def owl_Vrfy(publicKeyInBits, messageInBits, sign, t_ii):
     # setToBits                 : (set element) => bistring                     A function to convert a set element to bitstring
     # action                    : (group element, set element) => set element   The group action function that returns an element of the set
 
-    print("Verifying Message...")
+    #print("Verifying Message...")
 
     # Convert public key in bits to public key in set elements (S)
     publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
@@ -526,33 +481,17 @@ def owl_Vrfy(publicKeyInBits, messageInBits, sign, t_ii):
     # Get the b_i as integer
     signed_message = sign[:CHLG_SIZE*8]
     cha = bytes(int(signed_message[i:i+8], 2) for i in range(0, len(signed_message), 8))
-    chg_c, chg_nc, chg_val = expand_challenge(cha, CHLG_SIZE)
 
     # ============================== Non bit Operation
     right_part = sign[CHLG_SIZE*8:]
-    f_i_bits = [right_part[i:i+groupElementLengthInBits] for i in range(0, len(right_part), groupElementLengthInBits)]
-    f_i = [bitsToGroup(f) for f in f_i_bits]
+    f_i = bitsToGroup(right_part)
 
-    t_i = [0] * ROUND
-    for r in range(K):
-        t_i[chg_nc[r]] = action(f_i[chg_nc[r]], public_key[chg_val[r]])
-
-    for r in range(ROUND-K):
-        t_i[chg_c[r]] = action(f_i[chg_c[r]], public_key[C])
-    count = 0
-    for i in range(len(t_i)):
-        if t_ii[i] != t_i[i]:
-            count+=1
-    print(count)
+    t_i = action(f_i, public_key[0])
     # ================================ Bit Operations
-    hash_input = messageInBits
-    for ts in t_i:
-        hash_input += setToBits(ts)
+    hash_input = messageInBits + setToBits(t_i)
 
     cha_2 = hashlib.shake_256(bitsToBytes(hash_input)).digest(CHLG_SIZE)
-    print(cha)
-    print(cha_2)
     if cha == cha_2:
-        print("Verification Completed! Signature is Real!")
+        return 0
     else:
-        print("Verification Completed! Signature is Fake!")
+        return 1

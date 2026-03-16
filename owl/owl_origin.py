@@ -8,6 +8,8 @@ import numpy as np
 from hawk.rngcontext import RngContext, SHAKE256x4
 import hashlib
 
+logn=9
+
 # GMW-FS Requirements
 # Parameters
 # 1. c and C = 2^c              : integer                                           C is the number of group/set elements in the private/public key
@@ -33,18 +35,6 @@ import hashlib
 
 # Input
 # messageInBits
-
-# Parameters
-# 1. c and C = 2^c 
-# integer                                           
-# C is the number of group/set elements in the private/public key
-c = 4
-C = 2**c
-
-# 2. r                          
-# integer                                           
-# The number of rounds
-r = 64
 
 # 3. hash_function              
 # (bitstring) => bitstring                          
@@ -79,7 +69,7 @@ def matrix_mult(A,B):
 # # 1. action                     
 # # (group element, set element) => set element       
 # # The group action function that returns an element of the set
-def owl_action(B, Q):
+def action(B, Q):
     B_star = [[adjoint(B[0][0]),adjoint(B[1][0])],[adjoint(B[0][1]),adjoint(B[1][1])]]
     return matrix_mult(matrix_mult(B_star, Q), B)
 
@@ -131,7 +121,7 @@ def regeneratefg(kgseed, n):
 # # A function to sample and element of the group
 # rng = np.random.default_rng(42)
 
-def group_sampler(logn=8, rng=None): # Samples a random matrix
+def group_sampler(rng=None): # Samples a random matrix
     """
     hawkkeygen_unpacked (see Alg 13)
 
@@ -161,11 +151,11 @@ def group_sampler(logn=8, rng=None): # Samples a random matrix
     # Line 3: if isInvertible(f, 2) false or isInvertible(f, 2) is false then
     if not isinvertible(f, 2) or not isinvertible(g, 2):
         # Line 4: restart
-        return group_sampler(logn, rng)
+        return group_sampler(rng)
 
     # Line 5: if ||(f,g)||2 <= 2*n*sigkrsec**2:
     if (l2norm(f) + l2norm(g)) <= (2 * n * (PARAMS(logn, "sigmakrsec") ** 2)):
-        return group_sampler(logn, rng)
+        return group_sampler(rng)
 
     try:
         # Line 13: r <- NTRUSolve(f, g, 1)
@@ -173,12 +163,12 @@ def group_sampler(logn=8, rng=None): # Samples a random matrix
         F, G = ntru_solve(f, g)
     except ValueError:
         # Line 14&15: if r = \bot then restart
-        return group_sampler(logn, rng)
+        return group_sampler(rng)
 
     # Line 17: if infnorm( (F,G) ) > 127 then
     if infnorm(F) > 127 or infnorm(G) > 127:
         # Line 18: restart
-        return group_sampler(logn, rng)
+        return group_sampler(rng)
 
     # Line 28: return (priv, pub)
     p = 8380417
@@ -191,7 +181,7 @@ def group_sampler(logn=8, rng=None): # Samples a random matrix
 # # 3. set_sampler
 # # () => set element                                 
 # # A function to sample and element of the set
-def set_sampler(logn=8, rng=None):
+def set_sampler(rng=None):
     """
     hawkkeygen_unpacked (see Alg 13)
 
@@ -226,14 +216,14 @@ def set_sampler(logn=8, rng=None):
     # Line 3: if isInvertible(f, 2) false or isInvertible(f, 2) is false then
     if not isinvertible(f, 2) or not isinvertible(g, 2):
         # Line 4: restart
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     fadj = adjoint(f)
     gadj = adjoint(g)
 
     # Line 5: if ||(f,g)||2 <= 2*n*sigkrsec**2:
     if (l2norm(f) + l2norm(g)) <= (2 * n * (PARAMS(logn, "sigmakrsec") ** 2)):
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     p = (1 << 16) + 1
 
@@ -246,13 +236,13 @@ def set_sampler(logn=8, rng=None):
     # Line 9: if isInvertible(q00, p1) false or isInvertible(q00, p2) is false then
     if not isinvertible(q00, p1) or not isinvertible(q00, p2):
         # Line 10: restart
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     # Line 11: if (1/q00)[0] >= beta0 then
     invq00 = hawk.ntrugen.fft.inv_fft(q00)
     if invq00[0] >= PARAMS(logn, "beta0"):
         # Line 12: restart
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     try:
         # Line 13: r <- NTRUSolve(f, g, 1)
@@ -260,12 +250,12 @@ def set_sampler(logn=8, rng=None):
         F, G = ntru_solve(f, g)
     except ValueError:
         # Line 14&15: if r = \bot then restart
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     # Line 17: if infnorm( (F,G) ) > 127 then
     if infnorm(F) > 127 or infnorm(G) > 127:
         # Line 18: restart
-        return set_sampler(logn, rng)
+        return set_sampler(rng)
 
     Fadj = adjoint(F)
     Gadj = adjoint(G)
@@ -280,11 +270,11 @@ def set_sampler(logn=8, rng=None):
     # Line 21: if |q11[i]| >= 2^high11 for any i > 0 then
     if any(abs(q11i) >= 2 ** (PARAMS(logn, "high11")) for q11i in q11[1:]):
         # Line 22: restart
-        return set_sampler(logn, rng)
-    q00 = [i%p for i in f]
-    q01 = [i%p for i in F]
-    q10 = [i%p for i in g]
-    q11 = [i%p for i in G]
+        return set_sampler(rng)
+    q00 = [i%p for i in q00]
+    q01 = [i%p for i in q01]
+    q10 = [i%p for i in q10]
+    q11 = [i%p for i in q11]
     return [[q00,q01],[q10,q11]]
 
 # # 4. group_identity             
@@ -395,24 +385,168 @@ def bitsToGroup(bitstring):
 
 
 # OWL - GMWFS Construction
+LAMBDA = 128
+CHLG_SIZE = LAMBDA//4
+C = 7
+K = 22
+ROUND = 84
+from random_rng import shake_rng, get_random_value, deterministic_sample
+
+def expand_challenge(seed, seed_size):
+    if seed_size < 32:
+        raise Exception("expand_challenge Error: seed size to low")
+    
+    rng_gen = shake_rng(seed)
+    
+    chg = [0] * ROUND
+    if ROUND - K < K:
+        # pick ROUND-K coefficients to be C
+        for r in deterministic_sample(rng_gen, ROUND, ROUND-K):
+            chg[r] = C
+        # fill remaining coefficients with values < C
+        for i in range(ROUND):
+            if chg[i] == 0:
+                chg[i] = get_random_value(rng_gen, C)
+    else:
+        # initialize all coefficients to C
+        chg = [C] * ROUND
+        # pick K coefficients to be < C
+        for r in deterministic_sample(rng_gen, ROUND, K):
+            chg[r] = get_random_value(rng_gen, C)
+
+    # separate outputs
+    chg_c = [i for i, v in enumerate(chg) if v == C]
+    chg_nc = [i for i, v in enumerate(chg) if v < C]
+    chg_val = [v for v in chg if v < C]
+
+    return chg_c, chg_nc, chg_val
 
 def owl_Gen():
-    return Gen(C = C, group_identity=group_identity, 
-               group_sampler=group_sampler, set_sampler=set_sampler,
-               action=owl_action, groupToBits=groupToBits,
-               setToBits=setToBits)
+    # C                 : integer                                       Number of Set Elements in the private and public key
+    # group_identity    : group element                                 The identity of the group
+    # group_sampler     : () => group element                           A function to sample and element of the group
+    # set_sampler       : () => set element                             A function to sample and element of the set
+    # action            : (group element, set element) => set element   The group action function that returns an element of the set
+    # setToBits         : (set element) => bitstring                    A function to convert a set element to bitstring
+    # groupToBits       : (group element) => bitstring                  A function to convert a group element to bitstring
+
+    #print("Generating Key...")
+    private_key = []
+    public_key = []
+    Q_C = set_sampler()
+    for i in range(C):
+        B_i = group_sampler()
+        public_key.append(action(B_i, Q_C))
+        private_key.append(group_inverse(B_i))
+    public_key.append(Q_C)
+    
+    privateKeyInBits = ''.join([groupToBits(g) for g in private_key])
+    publicKeyInBits = ''.join([setToBits(s) for s in public_key])
+    #print("Key Generated!")
+    return publicKeyInBits, privateKeyInBits
 
 def owl_Sign(privateKeyInBits, publicKeyInBits, messageInBits):
-    return Sign(privateKeyInBits=privateKeyInBits, publicKeyInBits=publicKeyInBits,
-                messageInBits=messageInBits, setElementLengthInBits=setElementLengthInBits,
-                groupElementLengthInBits=groupElementLengthInBits, r=r, c=c,
-                hash_function=owl_hash, group_sampler=group_sampler,
-                action=owl_action, group_operator=group_operator,
-                group_inverse=group_inverse, bitsToGroup=bitsToGroup,
-                bitsToSet=bitsToSet, setToBits=setToBits, groupToBits=groupToBits)
+    # privateKeyInBits              : bitstring                                         private key in bits
+    # publicKeyInBits               : bitstring                                         public key in bits
+    # messageInBits                 : bitstring                                         message in bits
+    # r                             : integer                                           number of rounds
+    # c                             : integer                                           log2 of C (the num of private/public keys)
+    # hash_function                 : (bitstring) => bitstring                          the hash function
+    # group_sampler                 : () => group element                               A function to sample and element of the group
+    # action                        : (group element, set element) => set element       The group action function that returns an element of the set
+    # group_operator                : (group element, group element) => group element   The binary operator of the group
+    # group_inverse                 : (group element) => group element                  A function that returns the inverse of the given group element
+    # bitsToGroup                   : (bitstring) => group element                      A function to convert bitstring to the group element
+    # bitsToSet                     : (bitstring) => set element                        A function to convert bitstring to the set element
+    # setToBits                     : (set element) => bitstring                        A function to convert a set element to bitstring
+    # groupToBits                   : (group element) => bitstring                      A function to convert a group element to bitstring
+    # groupElemenentLengthInBits    : integer                                           The length of a group element in bitstring
+    # setElementLengthInBits        : integer                                           The length of a set element in bitstring
+
+    #print("Signing Message...")
+    
+    # =========================== Bit Operations ==================================
+
+    # Split the private key and public key to set elements and group elements (still in bits)
+    publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
+    privateKeySetElementsInBits = [privateKeyInBits[i:i+groupElementLengthInBits] for i in range(0, len(privateKeyInBits), groupElementLengthInBits)]
+
+    # Convert to actual group and set element
+    public_key = [bitsToSet(element) for element in publicKeySetElementsInBits]
+    private_key = [bitsToGroup(element) for element in privateKeySetElementsInBits]
+
+    # =========================== Non Bit Operations ========================================
+    h_i = [group_sampler() for i in range(ROUND)]
+    t_i = [action(h_i[i], public_key[C]) for i in range(ROUND)]
+
+    # =========================== Bit Operations ============================================
+    hash_input = messageInBits
+    for ts in t_i:
+        hash_input += setToBits(ts)
+    
+    cha = hashlib.shake_256(bitsToBytes(hash_input)).digest(CHLG_SIZE)
+    signed_message = ''.join(f'{byte:08b}' for byte in cha)
+    chg_c, chg_nc, chg_val = expand_challenge(cha, CHLG_SIZE)
+
+    f_i = [0]*ROUND
+
+    for r in range(K):
+        f_i[chg_nc[r]] = group_operator(h_i[chg_nc[r]],private_key[chg_val[r]])
+
+    for r in range(ROUND-K):
+        f_i[chg_c[r]] = h_i[chg_c[r]]
+
+    # ========================== Bit operations ===========================================
+    sign = signed_message
+    for f in f_i:
+        sign += groupToBits(f)
+
+    #print("Message Signed!")
+    return sign
 
 def owl_Vrfy(publicKeyInBits, messageInBits, sign):
-    return Vrfy(publicKeyInBits=publicKeyInBits, messageInBits=messageInBits, sign=sign, r=r, c=c,
-                setElementLengthInBits=setElementLengthInBits, groupElementLengthInBits=groupElementLengthInBits,
-                hash_function=owl_hash, bitsToGroup=bitsToGroup, bitsToSet=bitsToSet,
-                setToBits=setToBits, action=owl_action)
+    # publicKeyInBits           : bitstring                                     public key in bits
+    # messageInBits             : bitstring                                     message in bits
+    # sign                      : bitstring                                     The signature in bits
+    # r                         : integer                                       number of rounds
+    # c                         : integer                                       log2 of C (the num of private/public keys)
+    # setElementLengthInBits    : integer                                       The length of a set element in bitstring
+    # groupElementLengthInBits  : integer                                       The length of a group element in bitstring
+    # hash_function             : (bitstring) => bitstring                      The hash function
+    # bitsToGroup               : (bitstring) => group element                  A function to convert bitstring to the group element
+    # bitsToSet                 : (bitstring) => set element                    A function to convert bitstring to the set element
+    # setToBits                 : (set element) => bistring                     A function to convert a set element to bitstring
+    # action                    : (group element, set element) => set element   The group action function that returns an element of the set
+
+    #print("Verifying Message...")
+
+    # Convert public key in bits to public key in set elements (S)
+    publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
+    public_key = [bitsToSet(element) for element in publicKeySetElementsInBits]
+
+    # Get the b_i as integer
+    signed_message = sign[:CHLG_SIZE*8]
+    cha = bytes(int(signed_message[i:i+8], 2) for i in range(0, len(signed_message), 8))
+    chg_c, chg_nc, chg_val = expand_challenge(cha, CHLG_SIZE)
+
+    # ============================== Non bit Operation
+    right_part = sign[CHLG_SIZE*8:]
+    f_i_bits = [right_part[i:i+groupElementLengthInBits] for i in range(0, len(right_part), groupElementLengthInBits)]
+    f_i = [bitsToGroup(f) for f in f_i_bits]
+
+    t_i = [0] * ROUND
+    for r in range(K):
+        t_i[chg_nc[r]] = action(f_i[chg_nc[r]], public_key[chg_val[r]])
+
+    for r in range(ROUND-K):
+        t_i[chg_c[r]] = action(f_i[chg_c[r]], public_key[C])
+    # ================================ Bit Operations
+    hash_input = messageInBits
+    for ts in t_i:
+        hash_input += setToBits(ts)
+
+    cha_2 = hashlib.shake_256(bitsToBytes(hash_input)).digest(CHLG_SIZE)
+    if cha == cha_2:
+        return 0
+    else:
+        return 1

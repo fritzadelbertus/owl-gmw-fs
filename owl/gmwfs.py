@@ -9,7 +9,7 @@ def Gen(C, group_identity, group_sampler, set_sampler, action, groupToBits, setT
     # setToBits         : (set element) => bitstring                    A function to convert a set element to bitstring
     # groupToBits       : (group element) => bitstring                  A function to convert a group element to bitstring
 
-    print("Generating Key...")
+    #print("Generating Key...")
     private_key = [group_identity]
     for i in range(1,C):
         private_key.append(group_sampler())
@@ -19,7 +19,7 @@ def Gen(C, group_identity, group_sampler, set_sampler, action, groupToBits, setT
     
     privateKeyInBits = ''.join([groupToBits(g) for g in private_key])
     publicKeyInBits = ''.join([setToBits(s) for s in public_key])
-    print("Key Generated!")
+    #print("Key Generated!")
     return publicKeyInBits, privateKeyInBits
     
 
@@ -43,7 +43,7 @@ def Sign(privateKeyInBits, publicKeyInBits, messageInBits, setElementLengthInBit
     # groupElemenentLengthInBits    : integer                                           The length of a group element in bitstring
     # setElementLengthInBits        : integer                                           The length of a set element in bitstring
 
-    print("Signing Message...")
+    #print("Signing Message...")
     
     # =========================== Bit Operations ==================================
 
@@ -75,7 +75,7 @@ def Sign(privateKeyInBits, publicKeyInBits, messageInBits, setElementLengthInBit
     for f in f_i:
         sign += groupToBits(f)
 
-    print("Message Signed!")
+    #print("Message Signed!")
     return sign
 
 
@@ -95,7 +95,7 @@ def Vrfy(publicKeyInBits, messageInBits, sign, r, c,
     # setToBits                 : (set element) => bistring                     A function to convert a set element to bitstring
     # action                    : (group element, set element) => set element   The group action function that returns an element of the set
 
-    print("Verifying Message...")
+    #print("Verifying Message...")
 
     # Convert public key in bits to public key in set elements (S)
     publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
@@ -119,7 +119,7 @@ def Vrfy(publicKeyInBits, messageInBits, sign, r, c,
     hash_bits = hash_function(hash_input)
 
     if hash_bits == sign[:r*c]:
-        print("Verification Completed! Signature is Real!")
+        return 0
     else:
-        print("Verification Completed! Signature is Fake!")
+        return 1
 
