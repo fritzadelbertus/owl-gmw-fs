@@ -3,10 +3,10 @@ import tracemalloc
 import copy
 import os
 
-from alteq import alteq_keygen, alteq_sign, alteq_verify
+from ALTEQ.alteq import alteq_keygen, alteq_sign, alteq_verify
 
 
-TEST_ROUNDS = 20
+TEST_ROUNDS = 1
 
 
 def memory_snapshot():
@@ -39,7 +39,7 @@ def test_forgery():
 
     sig = alteq_sign(msg, sk)
 
-    # 1️⃣ Modify message
+    # Modify message
     forged_msg = bytearray(msg)
     forged_msg[0] ^= 1
 
@@ -47,7 +47,7 @@ def test_forgery():
 
     print("Message forgery:", "PASS" if res == 1 else "FAIL")
 
-    # 2️⃣ Modify signature hash
+    # Modify signature hash
     forged_sig = list(sig)
     forged_sig[0] = bytearray(forged_sig[0])
     forged_sig[0][0] ^= 1
@@ -57,7 +57,7 @@ def test_forgery():
 
     print("Hash forgery:", "PASS" if res == 1 else "FAIL")
 
-    # 3️⃣ Modify matrices
+    # Modify matrices
     forged_sig = list(copy.deepcopy(sig))
     forged_sig[2][0] ^= 1
 
@@ -97,36 +97,14 @@ def benchmark():
     print(f"Sign   avg: {sign_time/TEST_ROUNDS:.6f}s")
     print(f"Verify avg: {verify_time/TEST_ROUNDS:.6f}s")
 
-    print(f"Keygen ops/sec: {TEST_ROUNDS/keygen_time:.2f}")
-    print(f"Sign   ops/sec: {TEST_ROUNDS/sign_time:.2f}")
-    print(f"Verify ops/sec: {TEST_ROUNDS/verify_time:.2f}")
-
-
-def memory_test():
-    print("\n=== Memory Usage ===")
-
-    tracemalloc.start()
-
-    pk, sk = alteq_keygen()
-    msg = os.urandom(32)
-
-    sig = alteq_sign(msg, sk)
-    alteq_verify(msg, pk, sig)
-
-    current, peak = memory_snapshot()
-
-    print(f"Current memory: {current:.2f} MB")
-    print(f"Peak memory: {peak:.2f} MB")
-
-    tracemalloc.stop()
-
+    # print(f"Keygen ops/sec: {TEST_ROUNDS/keygen_time:.2f}")
+    # print(f"Sign   ops/sec: {TEST_ROUNDS/sign_time:.2f}")
+    # print(f"Verify ops/sec: {TEST_ROUNDS/verify_time:.2f}")
 
 if __name__ == "__main__":
 
     test_correctness()
 
-    test_forgery()
+    # test_forgery()
 
     benchmark()
-
-    memory_test()

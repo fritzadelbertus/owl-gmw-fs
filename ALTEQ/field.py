@@ -1,4 +1,4 @@
-from params import PRIME, LOG_Q, N, C
+from ALTEQ.params import PRIME, LOG_Q, N, C
 
 def multiplication_mod_p(a: int, b: int) -> int:
     r = a * b

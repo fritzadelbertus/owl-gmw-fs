@@ -1,7 +1,7 @@
 import hashlib
 import os
-from params import N, PRIME, LEN, ROUND, K, C
-from random_rng import shake_rng, get_random_value, deterministic_sample
+from ALTEQ.params import N, PRIME, LEN, ROUND, K, C
+from ALTEQ.random_rng import shake_rng, get_random_value, deterministic_sample
 
 # SUBJECT TO CHANGES
 # STORAGE SIZE IN expand_columns AND expand_atf IS NOT DETERMINED YET

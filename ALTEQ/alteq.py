@@ -1,14 +1,14 @@
-from params import (SK_SEED_SIZE, MAT_SK_SEED_SIZE,
+from ALTEQ.params import (SK_SEED_SIZE, MAT_SK_SEED_SIZE,
     C, K, N, PRIME, ROUND, LEN, PK_SEED_SIZE, MSG_HASH_SIZE, USE_SALT, 
     SALT_SIZE, SIG_SEED_SIZE, EXPCOL_SIG_SEED_SIZE,
     CHLG_SIZE)
 
-from expand import (random_seed, expand_seeds, 
+from ALTEQ.expand import (random_seed, expand_seeds, 
     expand_columns, expand_atfs, expand_challenge)
 
-from atf import inverting_on_atf, acting_on_atfs
+from ALTEQ.atf import inverting_on_atf, acting_on_atfs
 
-from matrix import columns_matrix, columns_decomposition
+from ALTEQ.matrix import columns_matrix, columns_decomposition
 
 import hashlib
 

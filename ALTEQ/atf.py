@@ -1,5 +1,5 @@
-from params import LEN, N, C, PRIME, ROUND
-from field import (set_inversion_mod_p, reduction_strict, 
+from ALTEQ.params import LEN, N, C, PRIME, ROUND
+from ALTEQ.field import (set_inversion_mod_p, reduction_strict, 
     multiplication_mod_p, reduction_mod_p)
 
 def compress_atf(atf_in, vec_size: int, nb_atf: int):

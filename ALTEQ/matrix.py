@@ -1,5 +1,5 @@
-from params import N,K, PRIME
-from field import reduction_mod_p, multiplication_mod_p, inversion_modulo_p
+from ALTEQ.params import N,K, PRIME
+from ALTEQ.field import reduction_mod_p, multiplication_mod_p, inversion_modulo_p
 def column_mul(mat, column, j, s):
 
     for i in range(N):
