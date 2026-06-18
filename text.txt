@@ -1,0 +1,33 @@
+FALCON 1024
+Private key size: 6 bytes
+Public key size: 1792 bytes
+Sig size: 1280 bytes
+
+Key gen: 14623.93275 ms
+Sign: 39.85468 ms
+Verify: 9.82320 ms
+
+FALCON 512
+Private key size: 6 bytes
+Public key size: 896 bytes
+Sig size: 666 bytes
+
+Key gen: 3429.94401 ms
+Sign: 19.46520 ms
+Verify: 4.56270 ms
+
+Dilithium2
+Private key size: 2528 bytes
+Public key size: 1312 bytes
+Sig size: 2420 bytes
+
+Key gen: 4.97354 ms
+Sign: 12.26549 ms
+Verify: 6.00320 ms
+
+Private key size: 24 bytes
+Public key size: 8192 bytes
+Signature size: 8224 bytes
+KeyGen: 2311.3223791122437 ms
+Sign: 3801.755368709564 ms
+Verify: 62.01584339141846 ms

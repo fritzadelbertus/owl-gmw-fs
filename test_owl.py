@@ -2,7 +2,7 @@ import time
 import tracemalloc
 import os
 
-from OWL.owl_pure import owl_Gen, owl_Sign, owl_Vrfy
+from OWL.owl_one import owl_Gen, owl_Sign, owl_Vrfy
 
 
 TEST_ROUNDS = 1
@@ -11,9 +11,6 @@ TEST_ROUNDS = 1
 # ===============================
 # Utilities
 # ===============================
-
-def bytes_to_bits(data):
-    return ''.join(f'{b:08b}' for b in data)
 
 
 def memory_snapshot():
