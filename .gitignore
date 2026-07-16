@@ -11,4 +11,8 @@ alteq_source/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+DIL/
+DILITHIUM/
+FALCON/
+HAWK/
 
