@@ -1,0 +1,52 @@
+{
+  "configuration": {
+    "iterations": 30,
+    "message_size_bytes": 32,
+    "scheme": "OWL-LIP",
+    "warmup": 3
+  },
+  "environment": {
+    "cpu_count": "16",
+    "git_commit": "2e1bc51b293bc89dea5af10c88819f93cdcf0cce",
+    "machine": "x86_64",
+    "platform": "Linux-7.0.12-arch1-1-x86_64-with-glibc2.43",
+    "processor": "unknown",
+    "python": "3.14.5 (main, May 10 2026, 18:26:20) [GCC 16.1.1 20260430]"
+  },
+  "sizes": {
+    "message_bytes": 32,
+    "public_key_bytes": 128,
+    "scheme": "OWL-LIP",
+    "secret_key_bytes": 112,
+    "signature_bytes": 1376
+  },
+  "timings": {
+    "keygen": {
+      "max_ms": 2.212363,
+      "mean_ms": 1.7703002,
+      "median_ms": 1.7462725,
+      "min_ms": 1.676327,
+      "operations_per_second": 564.8759458988933,
+      "runs": 30,
+      "stdev_ms": 0.10685514675142681
+    },
+    "sign": {
+      "max_ms": 11.893063,
+      "mean_ms": 11.614022933333333,
+      "median_ms": 11.617049999999999,
+      "min_ms": 11.396491,
+      "operations_per_second": 86.1028091420335,
+      "runs": 30,
+      "stdev_ms": 0.09541400493924947
+    },
+    "verify": {
+      "max_ms": 0.923083,
+      "mean_ms": 0.9022048,
+      "median_ms": 0.9023285,
+      "min_ms": 0.878268,
+      "operations_per_second": 1108.39578774132,
+      "runs": 30,
+      "stdev_ms": 0.009520029184974096
+    }
+  }
+}

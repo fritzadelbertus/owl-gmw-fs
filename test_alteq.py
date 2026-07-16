@@ -1,17 +1,16 @@
-import time
-import tracemalloc
 import copy
 import os
+import time
+import tracemalloc
 
 from ALTEQ.alteq import alteq_keygen, alteq_sign, alteq_verify
-
 
 TEST_ROUNDS = 1
 
 
 def memory_snapshot():
     current, peak = tracemalloc.get_traced_memory()
-    return current / (1024*1024), peak / (1024*1024)
+    return current / (1024 * 1024), peak / (1024 * 1024)
 
 
 def test_correctness():
@@ -93,16 +92,16 @@ def benchmark():
         alteq_verify(msg, pk, sig)
         verify_time += time.perf_counter() - t0
 
-    print(f"Keygen avg: {keygen_time/TEST_ROUNDS:.6f}s")
-    print(f"Sign   avg: {sign_time/TEST_ROUNDS:.6f}s")
-    print(f"Verify avg: {verify_time/TEST_ROUNDS:.6f}s")
+    print(f"Keygen avg: {keygen_time / TEST_ROUNDS:.6f}s")
+    print(f"Sign   avg: {sign_time / TEST_ROUNDS:.6f}s")
+    print(f"Verify avg: {verify_time / TEST_ROUNDS:.6f}s")
 
     # print(f"Keygen ops/sec: {TEST_ROUNDS/keygen_time:.2f}")
     # print(f"Sign   ops/sec: {TEST_ROUNDS/sign_time:.2f}")
     # print(f"Verify ops/sec: {TEST_ROUNDS/verify_time:.2f}")
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     test_correctness()
 
     # test_forgery()

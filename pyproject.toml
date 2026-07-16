@@ -1,0 +1,190 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+indent-width = 4
+
+extend-exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "DIL",
+    "FALCON",
+    "HAWK",
+    "OWL",
+]
+
+[tool.ruff.lint]
+select = [
+    # Pycodestyle errors and warnings
+    "E",
+    "W",
+
+    # Pyflakes: unused imports, undefined names, etc.
+    "F",
+
+    # Import sorting
+    "I",
+
+    # Naming conventions
+    "N",
+
+    # Modern Python syntax
+    "UP",
+
+    # Common bugs and design mistakes
+    "B",
+
+    # Simplifiable code
+    "SIM",
+
+    # Comprehension improvements
+    "C4",
+
+    # Return-statement correctness
+    "RET",
+
+    # Exception-handling correctness
+    "TRY",
+
+    # Security-related checks
+    "S",
+
+    # pathlib recommendations
+    "PTH",
+
+    # pytest style
+    "PT",
+
+    # Ruff-specific checks
+    "RUF",
+]
+
+ignore = [
+    # Ruff's formatter may intentionally produce lines longer than the limit.
+    "E501",
+
+    # Sometimes an exception message variable is clearer than an inline string.
+    "TRY003",
+
+    # OWL is research software and may use assert for internal invariants.
+    "S101",
+
+    # Cryptographic code may legitimately use hashlib algorithms that Bandit
+    # treats cautiously. Review these cases manually.
+    "S324",
+]
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    # Tests commonly use assert.
+    "S101",
+
+    # Test functions do not require docstrings.
+    "D",
+]
+
+"benchmarks/**/*.py" = [
+    # Benchmarks may use subprocesses and intentionally non-secure test data.
+    "S603",
+    "S607",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "owl_LIP",
+    "owl_mLIP",
+]
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "typing.Annotated",
+]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = 88
+
+[tool.mypy]
+python_version = "3.14"
+
+files = [
+    "benchmarks",
+    "tests",
+]
+
+exclude = [
+    "^build/",
+    "^dist/",
+    "^\\.venv/",
+    "^DIL/",
+    "^DILITHIUM/",
+    "^FALCON/",
+    "^HAWK/",
+    "^OWL/",
+    "^alteq/"
+]
+
+# Check function bodies even when functions are not fully annotated yet.
+check_untyped_defs = true
+
+# Require partially annotated functions to be completed.
+disallow_incomplete_defs = true
+
+# Initially allow completely untyped functions while migrating the project.
+disallow_untyped_defs = false
+
+# Prevent silent Optional behavior.
+no_implicit_optional = true
+strict_optional = true
+
+# Catch suspicious or incomplete typing.
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+warn_no_return = true
+
+# Avoid silently exporting imported names as part of a module API.
+no_implicit_reexport = true
+
+# Improve generic type checking.
+disallow_any_generics = true
+
+# Require equality comparisons to make type sense.
+strict_equality = true
+
+# Perform additional checks that do not belong to strict mode.
+extra_checks = true
+
+# Output quality.
+show_error_codes = true
+show_error_context = true
+pretty = true
+
+# Warn if a per-module configuration section matches nothing.
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sympy",
+    "sympy.*",
+]
+ignore_missing_imports = true

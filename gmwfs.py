@@ -1,125 +1,152 @@
 # GMW-FS
+# A post-quantum digital signature protocol using cryptographic group actions
 
-def Gen(C, group_identity, group_sampler, set_sampler, action, groupToBits, setToBits):
-    # C                 : integer                                       Number of Set Elements in the private and public key
-    # group_identity    : group element                                 The identity of the group
-    # group_sampler     : () => group element                           A function to sample and element of the group
-    # set_sampler       : () => set element                             A function to sample and element of the set
-    # action            : (group element, set element) => set element   The group action function that returns an element of the set
-    # setToBits         : (set element) => bitstring                    A function to convert a set element to bitstring
-    # groupToBits       : (group element) => bitstring                  A function to convert a group element to bitstring
+from collections.abc import Callable
+from dataclasses import dataclass, field
+import os
 
-    print("Generating Key...")
-    private_key = [group_identity]
-    for i in range(1,C):
-        private_key.append(group_sampler())
-    public_key = [set_sampler()]
-    for i in range(1,C):
-        public_key.append(action(private_key[i], public_key[0]))
-    
-    privateKeyInBits = ''.join([groupToBits(g) for g in private_key])
-    publicKeyInBits = ''.join([setToBits(s) for s in public_key])
-    print("Key Generated!")
-    return publicKeyInBits, privateKeyInBits
-    
-
-def Sign(privateKeyInBits, publicKeyInBits, messageInBits, setElementLengthInBits, groupElementLengthInBits,
-         r, c, hash_function, group_sampler, action, group_operator, group_inverse,
-         bitsToGroup, bitsToSet, setToBits, groupToBits):
-    # privateKeyInBits              : bitstring                                         private key in bits
-    # publicKeyInBits               : bitstring                                         public key in bits
-    # messageInBits                 : bitstring                                         message in bits
-    # r                             : integer                                           number of rounds
-    # c                             : integer                                           log2 of C (the num of private/public keys)
-    # hash_function                 : (bitstring) => bitstring                          the hash function
-    # group_sampler                 : () => group element                               A function to sample and element of the group
-    # action                        : (group element, set element) => set element       The group action function that returns an element of the set
-    # group_operator                : (group element, group element) => group element   The binary operator of the group
-    # group_inverse                 : (group element) => group element                  A function that returns the inverse of the given group element
-    # bitsToGroup                   : (bitstring) => group element                      A function to convert bitstring to the group element
-    # bitsToSet                     : (bitstring) => set element                        A function to convert bitstring to the set element
-    # setToBits                     : (set element) => bitstring                        A function to convert a set element to bitstring
-    # groupToBits                   : (group element) => bitstring                      A function to convert a group element to bitstring
-    # groupElemenentLengthInBits    : integer                                           The length of a group element in bitstring
-    # setElementLengthInBits        : integer                                           The length of a set element in bitstring
-
-    print("Signing Message...")
-    
-    # =========================== Bit Operations ==================================
-
-    # Split the private key and public key to set elements and group elements (still in bits)
-    publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
-    privateKeySetElementsInBits = [privateKeyInBits[i:i+groupElementLengthInBits] for i in range(0, len(privateKeyInBits), groupElementLengthInBits)]
-
-    # Convert to actual group and set element
-    public_key = [bitsToSet(element) for element in publicKeySetElementsInBits]
-    private_key = [bitsToGroup(element) for element in privateKeySetElementsInBits]
-
-    # =========================== Non Bit Operations ========================================
-    h_i = [group_sampler() for i in range(r)]
-    t_i = [action(h_i[i], public_key[0]) for i in range(r)]
-
-    # =========================== Bit Operations ============================================
-    hash_input = messageInBits
-    for ts in t_i:
-        hash_input += setToBits(ts)
-    
-    hash_bits = hash_function(hash_input)
-
-    # ========================== Non Bit Operations ========================================
-    b_i = [int(hash_bits[i:i+c],2) for i in range(0, len(hash_bits), c)]
-    f_i = [group_operator(h_i[i], group_inverse(private_key[b_i[i]])) for i in range(r)]
-
-    # ========================== Bit operations ===========================================
-    sign = hash_bits
-    for f in f_i:
-        sign += groupToBits(f)
-
-    print("Message Signed!")
-    return sign
+from cga import Cga
+from gmwfs_codec import GmwfsEncoder
+from rngcontext import RngContext, make_rng
+from type_defs import (
+    GmwfsContextT,
+    GmwfsPublicKeyT,
+    GmwfsSecretKeyT,
+    GmwfsSignatureT,
+    GroupElementT,
+    SetElementT,
+)
 
 
-def Vrfy(publicKeyInBits, messageInBits, sign, r, c, 
-         setElementLengthInBits, groupElementLengthInBits, hash_function, 
-         bitsToGroup, bitsToSet, setToBits, action):
-    # publicKeyInBits           : bitstring                                     public key in bits
-    # messageInBits             : bitstring                                     message in bits
-    # sign                      : bitstring                                     The signature in bits
-    # r                         : integer                                       number of rounds
-    # c                         : integer                                       log2 of C (the num of private/public keys)
-    # setElementLengthInBits    : integer                                       The length of a set element in bitstring
-    # groupElementLengthInBits  : integer                                       The length of a group element in bitstring
-    # hash_function             : (bitstring) => bitstring                      The hash function
-    # bitsToGroup               : (bitstring) => group element                  A function to convert bitstring to the group element
-    # bitsToSet                 : (bitstring) => set element                    A function to convert bitstring to the set element
-    # setToBits                 : (set element) => bistring                     A function to convert a set element to bitstring
-    # action                    : (group element, set element) => set element   The group action function that returns an element of the set
+@dataclass
+class Gmwfs[GroupElementT, SetElementT]:
+    name: str
+    cga: Cga[GroupElementT, SetElementT]
+    c: int
+    k: int
+    r: int
+    hash: Callable[[bytes], bytes]
+    expand: Callable[[bytes], tuple[list[int], list[int], list[int]]]
+    chg_size: int
+    context: SetElementT | None
+    rngcontext: RngContext = field(init=False)
 
-    print("Verifying Message...")
+    def __post_init__(self):
+        self.encoder = GmwfsEncoder(self.cga, self.chg_size)
+        x = int.from_bytes(os.urandom(1), byteorder="big")
+        self.rngcontext = make_rng(x)
 
-    # Convert public key in bits to public key in set elements (S)
-    publicKeySetElementsInBits = [publicKeyInBits[i:i+setElementLengthInBits] for i in range(0, len(publicKeyInBits), setElementLengthInBits)]
-    public_key = [bitsToSet(element) for element in publicKeySetElementsInBits]
+    def keygen(
+        self,
+    ) -> tuple[
+        GmwfsPublicKeyT[SetElementT],
+        GmwfsSecretKeyT[GroupElementT],
+        GmwfsContextT,
+    ]:
+        orbit = (
+            self.context
+            if self.context is not None
+            else self.cga.set.sample(self.rngcontext)
+        )
+        secret_key = [self.cga.group.sample(self.rngcontext) for i in range(self.c)]
+        public_key = [
+            self.cga.action(orbit, self.cga.group.inverse(secret_key[i]))
+            for i in range(self.c)
+        ]
 
-    # Get the b_i as integer
-    b_i_bits = sign[:r*c]
-    b_i = [int(b_i_bits[i:i+c],2) for i in range(0, len(b_i_bits), c)]
+        return (orbit, public_key), secret_key, None
 
-    # ============================== Non bit Operation
-    right_part = sign[r*c:]
-    f_i_bits = [right_part[i:i+groupElementLengthInBits] for i in range(0, len(right_part), groupElementLengthInBits)]
-    f_i = [bitsToGroup(f) for f in f_i_bits]
-    t_i = [action(f_i[i], public_key[b_i[i]]) for i in range(r)]
+    def sign(
+        self,
+        secret_key: GmwfsSecretKeyT[GroupElementT],
+        public_key: GmwfsPublicKeyT[SetElementT],
+        message: bytes,
+        context: GmwfsContextT = None,
+    ) -> tuple[GmwfsSignatureT[GroupElementT], GmwfsContextT]:
+        orbit, _ = public_key
+        h_i = [self.cga.group.sample(self.rngcontext) for i in range(self.r)]
+        t_i = [self.cga.action(orbit, h_i[i]) for i in range(self.r)]
 
-    # ================================ Bit Operations
-    hash_input = messageInBits
-    for ts in t_i:
-        hash_input += setToBits(ts)
+        hash_input = message
+        for i in t_i:
+            hash_input += self.cga.set.encode(i)
 
-    hash_bits = hash_function(hash_input)
+        chg = self.hash(hash_input)
+        chg_c, chg_nc, chg_val = self.expand(chg)
 
-    if hash_bits == sign[:r*c]:
-        print("Verification Completed! Signature is Real!")
-    else:
-        print("Verification Completed! Signature is Fake!")
+        f_i = [self.cga.group.placeholder()] * self.r
+        for k in range(self.k):
+            f_i[chg_nc[k]] = self.cga.group.operate(
+                h_i[chg_nc[k]], secret_key[chg_val[k]]
+            )
 
+        for k in range(self.r - self.k):
+            f_i[chg_c[k]] = h_i[chg_c[k]]
+
+        return ((chg, f_i), context)
+
+    def verify(
+        self,
+        public_key: GmwfsPublicKeyT[SetElementT],
+        message: bytes,
+        signature: GmwfsSignatureT[GroupElementT],
+        context: GmwfsContextT = None,
+    ) -> bool:
+        orbit, public = public_key
+        chg, f_i = signature
+        chg_c, chg_nc, chg_val = self.expand(chg)
+        t_i = [self.cga.set.placeholder()] * self.r
+        for k in range(self.k):
+            t_i[chg_nc[k]] = self.cga.action(public[chg_val[k]], f_i[chg_nc[k]])
+
+        for k in range(self.r - self.k):
+            t_i[chg_c[k]] = self.cga.action(orbit, f_i[chg_c[k]])
+
+        hash_input = message
+        for i in t_i:
+            hash_input += self.cga.set.encode(i)
+        chg_2 = self.hash(hash_input)
+
+        return chg == chg_2
+
+    def keygen_bytes(self) -> tuple[bytes, bytes]:
+        print("Generating Key...")
+        public_key, secret_key, _ = self.keygen()
+
+        pk = self.encoder.encode_public_key(public_key)
+        sk = self.encoder.encode_secret_key(secret_key)
+
+        print("Key Generated!")
+        return pk, sk
+
+    def sign_bytes(self, sk: bytes, pk: bytes, message: bytes) -> bytes:
+        print("Signing Message...")
+        secret_key = self.encoder.decode_secret_key(sk)
+        public_key = self.encoder.decode_public_key(pk)
+
+        sign, _ = self.sign(secret_key, public_key, message)
+
+        print("Message Signed!")
+        return self.encoder.encode_signature(sign)
+
+    def verify_bytes(self, pk: bytes, message: bytes, sign: bytes) -> bool:
+        print("Verifying Message...")
+        public_key = self.encoder.decode_public_key(pk)
+        decoded_sign = self.encoder.decode_signature(sign)
+
+        valid_sign = self.verify(public_key, message, decoded_sign)
+
+        if valid_sign:
+            print("Verification Success")
+            return True
+        print("Verification Failed")
+        return False
+
+    def testing(self):
+        pk, sk = self.keygen_bytes()
+
+        msg = os.urandom(32)
+
+        sig = self.sign_bytes(sk, pk, msg)
+
+        self.verify_bytes(pk, msg, sig)

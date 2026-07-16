@@ -7,3 +7,8 @@ myenv/
 .vscode/
 *.code-workspace
 alteq_source/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+

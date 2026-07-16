@@ -1,0 +1,2 @@
+scheme,public_key_bytes,secret_key_bytes,signature_bytes,message_bytes
+OWL-LIP,128,112,1376,32
